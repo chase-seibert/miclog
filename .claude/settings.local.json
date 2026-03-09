@@ -16,7 +16,9 @@
       "Bash(curl -I -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin)",
       "Bash(brew list whisper-cpp)",
       "Bash(whisper-cli --help)",
-      "Bash(./miclog --test 3)"
+      "Bash(./miclog --test 3)",
+      "Bash(git remote add origin https://github.com/chase-seibert/miclog.git)",
+      "Bash(gh auth status)"
     ]
   }
 }

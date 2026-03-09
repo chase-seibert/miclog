@@ -6,8 +6,10 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
     private var chunkIndex = 0
     private var chunkTimer: Timer?
     private var testTimer: Timer?
+    private var meteringTimer: Timer?
     private let transcriptionQueue = DispatchQueue(label: "com.miclog.transcription")
     private var pendingChunks: [String] = []
+    private var silentChunks: Set<Int> = []
     private var isRecording = false
     private var isTranscribing = false
     private let dateFormatter: DateFormatter
@@ -15,6 +17,10 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
     private let chunkDuration: TimeInterval = 5.0
     private let whisperPath: String?
     private let modelPath: String?
+    private var recentOutputs: [String] = []
+    private let maxRecentOutputs = 5
+    private var currentChunkHasAudio = false
+    private let silenceThreshold: Float = -45.0  // dB threshold for silence
 
     override init() {
         self.dateFormatter = DateFormatter()
@@ -132,6 +138,11 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
             self?.rotateChunk()
         }
 
+        // Setup metering timer to check audio levels periodically
+        meteringTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.checkAudioLevels()
+        }
+
         // Setup test mode timer if specified
         if let duration = duration {
             print("Recording for \(Int(duration)) seconds...", to: &standardError)
@@ -162,7 +173,11 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
         do {
             currentRecorder = try AVAudioRecorder(url: audioURL, settings: settings)
             currentRecorder?.delegate = self
+            currentRecorder?.isMeteringEnabled = true
             currentRecorder?.prepareToRecord()
+
+            // Reset audio detection for new chunk
+            currentChunkHasAudio = false
 
             let success = currentRecorder?.record() ?? false
             if !success {
@@ -177,11 +192,28 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
         }
     }
 
+    private func checkAudioLevels() {
+        guard let recorder = currentRecorder, recorder.isRecording else { return }
+
+        recorder.updateMeters()
+        let averagePower = recorder.averagePower(forChannel: 0)
+
+        // If audio level exceeds silence threshold, mark chunk as having audio
+        if averagePower > silenceThreshold {
+            currentChunkHasAudio = true
+        }
+    }
+
     private func rotateChunk() {
         guard isRecording else { return }
 
         // Stop current recorder
         currentRecorder?.stop()
+
+        // Mark chunk as silent if no audio was detected
+        if !currentChunkHasAudio {
+            silentChunks.insert(chunkIndex)
+        }
 
         // Add completed chunk to transcription queue
         let chunkPath = "/tmp/miclog_chunk_\(chunkIndex).wav"
@@ -201,7 +233,18 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
         guard let chunkPath = pendingChunks.first else { return }
         pendingChunks.removeFirst()
 
-        transcribeChunk(chunkPath)
+        // Extract chunk index from path (e.g., "/tmp/miclog_chunk_5.wav" -> 5)
+        let filename = (chunkPath as NSString).lastPathComponent
+        let chunkIndexStr = filename.replacingOccurrences(of: "miclog_chunk_", with: "").replacingOccurrences(of: ".wav", with: "")
+        let currentChunkIndex = Int(chunkIndexStr) ?? -1
+
+        // Skip transcription for silent chunks
+        if silentChunks.contains(currentChunkIndex) {
+            try? FileManager.default.removeItem(atPath: chunkPath)
+            silentChunks.remove(currentChunkIndex)
+        } else {
+            transcribeChunk(chunkPath)
+        }
 
         // Process next chunk if available
         if !pendingChunks.isEmpty {
@@ -223,9 +266,13 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
         process.executableURL = URL(fileURLWithPath: whisperPath)
         process.arguments = [
             "-m", modelPath,
-            "-np", // No prints (only output transcription)
-            "-nt", // No timestamps in output
-            path   // Input file
+            "-np",              // No prints (only output transcription)
+            "-nt",              // No timestamps in output
+            "-nth", "0.90",     // No-speech threshold (default: 0.60)
+            "-et", "3.5",       // Entropy threshold (default: 2.40)
+            "-sns",             // Suppress non-speech tokens
+            "-nf",              // Disable temperature fallback
+            path
         ]
 
         let pipe = Pipe()
@@ -240,10 +287,33 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
                 let data = pipe.fileHandleForReading.readDataToEndOfFile()
                 if let output = String(data: data, encoding: .utf8) {
                     let trimmed = output.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !trimmed.isEmpty {
-                        let timestamp = dateFormatter.string(from: Date())
-                        print("[\(timestamp)] \(trimmed)")
-                        fflush(stdout)
+
+                    // Skip empty output
+                    if trimmed.isEmpty {
+                        return
+                    }
+
+                    // Filter 1: Minimum word count (skip very short outputs)
+                    let wordCount = trimmed.components(separatedBy: .whitespacesAndNewlines)
+                        .filter { !$0.isEmpty }.count
+                    if wordCount < 3 {
+                        return  // Skip outputs with fewer than 3 words
+                    }
+
+                    // Filter 2: Exact repetition detection
+                    if recentOutputs.contains(trimmed) {
+                        return  // Skip exact duplicate of recent output
+                    }
+
+                    // Output the transcription
+                    let timestamp = dateFormatter.string(from: Date())
+                    print("[\(timestamp)] \(trimmed)")
+                    fflush(stdout)
+
+                    // Update recent outputs cache
+                    recentOutputs.append(trimmed)
+                    if recentOutputs.count > maxRecentOutputs {
+                        recentOutputs.removeFirst()
                     }
                 }
             }
@@ -261,9 +331,14 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
         isRecording = false
         chunkTimer?.invalidate()
         testTimer?.invalidate()
+        meteringTimer?.invalidate()
 
-        // Stop current recorder and add final chunk
+        // Stop current recorder and mark final chunk as silent if needed
         currentRecorder?.stop()
+        if !currentChunkHasAudio {
+            silentChunks.insert(chunkIndex)
+        }
+
         let finalChunkPath = "/tmp/miclog_chunk_\(chunkIndex).wav"
         pendingChunks.append(finalChunkPath)
 

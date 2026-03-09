@@ -51,15 +51,6 @@ swiftc main.swift -o miclog
 ./miclog > transcript.txt
 ```
 
-### Output Format
-
-Each line includes a timestamp:
-```
-[2026-03-09 15:30:00] This is the first transcribed chunk.
-[2026-03-09 15:30:05] This is the second chunk, five seconds later.
-[2026-03-09 15:30:10] And so on...
-```
-
 ### Examples
 
 ```bash
@@ -67,16 +58,10 @@ Each line includes a timestamp:
 ./miclog
 
 # Save to file
-./miclog > meeting_notes.txt
-
-# Pipe to grep
-./miclog | grep "action item"
-
-# Append to existing file
 ./miclog >> daily_log.txt
 
-# Test mode (30 seconds)
-./miclog --test 30 > test.txt
+# Test mode (exist after 5 seconds)
+./miclog --test 5
 ```
 
 ### Example Output
@@ -117,7 +102,7 @@ Verify installation: `which whisper-cli` should show `/opt/homebrew/bin/whisper-
 Download the large model (see Prerequisites above). The tool searches multiple locations automatically.
 
 ### "Permission denied"
-Allow microphone access in **System Settings → Privacy & Security → Microphone**
+It should prompt for for this automatically on first run. Allow microphone access in **System Settings → Privacy & Security → Microphone**
 
 ### Slow transcription
 The large model is slow but accurate. For faster results:
