@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(swiftc main.swift -o miclog)",
+      "Bash(./miclog --test 3 test.m4a)",
+      "Bash(afplay test.m4a)",
+      "Bash(./miclog --test 2)",
+      "Bash(ls -lh *.m4a miclog)",
+      "Bash(git init)",
+      "Bash(./miclog --help)",
+      "Bash(./miclog --test 10 test.txt)",
+      "Bash(./miclog --test 5)",
+      "Bash(./miclog --test 1)",
+      "Bash(curl -I -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large.bin)",
+      "Bash(curl -s https://huggingface.co/ggerganov/whisper.cpp/tree/main)",
+      "Bash(curl -I -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.bin)",
+      "Bash(brew list whisper-cpp)",
+      "Bash(whisper-cli --help)",
+      "Bash(./miclog --test 3)"
+    ]
+  }
+}

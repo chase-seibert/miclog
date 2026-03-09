@@ -1,0 +1,19 @@
+# Swift build artifacts
+*.o
+*.swiftmodule
+*.swiftdoc
+
+# Compiled binary
+miclog
+
+# Transcript files
+*.txt
+
+# Temporary audio files
+*.wav
+
+# Whisper models directory
+.whisper-models/
+
+# macOS system files
+.DS_Store
