@@ -1,6 +1,6 @@
 # miclog
 
-Real-time microphone transcription tool for macOS using whisper.cpp.
+Real-time microphone transcription tool for macOS using whisper.cpp. Never worry about whether you have authorization to record a meeting or enable AI summaries in your meeting app again!
 
 ## Prerequisites
 
@@ -73,6 +73,31 @@ swiftc main.swift -o miclog
 ```
 
 Each line shows a timestamp followed by the transcribed text from that 5-second audio chunk.
+
+## Use Case: Meeting Transcription
+
+Here's a practical workflow for transcribing and summarizing meetings:
+
+1. **Start transcription** before your meeting:
+   ```bash
+   ./miclog
+   ```
+
+2. **After the meeting ends**, select all transcript text in the terminal:
+   - Press `Command + A` to select all
+   - Press `Command + C` to copy to clipboard
+   - Press `Command + K` to clear the terminal (ready for next meeting)
+
+3. **Generate AI summary**:
+   - Paste the transcript into ChatGPT (or Claude)
+   - Ask: "Please summarize this meeting transcript"
+
+This produces a very readable AI summary of your meeting with key points, action items, and decisions.
+
+**Tip**: You can also redirect to a file and keep a daily log:
+```bash
+./miclog >> meetings_$(date +%Y-%m-%d).txt
+```
 
 ## How It Works
 
