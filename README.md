@@ -34,7 +34,7 @@ The tool will search for the model at:
 ## Build
 
 ```bash
-swiftc main.swift -o miclog
+make
 ```
 
 ## Usage

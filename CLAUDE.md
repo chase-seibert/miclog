@@ -28,7 +28,7 @@ curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3.
 
 ### Build
 ```bash
-swiftc main.swift -o miclog
+make
 ```
 
 ### Test
