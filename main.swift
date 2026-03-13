@@ -143,6 +143,9 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
             self?.checkAudioLevels()
         }
 
+        // Set terminal tab title
+        print("\u{1B}]1;🎤 miclog\u{07}", to: &standardError)
+
         // Setup test mode timer if specified
         if let duration = duration {
             print("Recording for \(Int(duration)) seconds...", to: &standardError)
