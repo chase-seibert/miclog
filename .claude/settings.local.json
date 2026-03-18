@@ -18,7 +18,9 @@
       "Bash(whisper-cli --help)",
       "Bash(./miclog --test 3)",
       "Bash(git remote add origin https://github.com/chase-seibert/miclog.git)",
-      "Bash(gh auth status)"
+      "Bash(gh auth status)",
+      "Bash(ls /tmp/miclog_chunk_*.wav)",
+      "Bash(make:*)"
     ]
   }
 }

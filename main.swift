@@ -265,6 +265,11 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
     private func transcribeChunk(_ path: String) {
         guard let whisperPath = whisperPath, let modelPath = modelPath else { return }
 
+        // Ensure cleanup happens even on early returns
+        defer {
+            try? FileManager.default.removeItem(atPath: path)
+        }
+
         let process = Process()
         process.executableURL = URL(fileURLWithPath: whisperPath)
         process.arguments = [
@@ -320,9 +325,6 @@ class ChunkedRecorder: NSObject, AVAudioRecorderDelegate {
                     }
                 }
             }
-
-            // Clean up chunk file
-            try? FileManager.default.removeItem(atPath: path)
         } catch {
             print("Error transcribing chunk: \(error.localizedDescription)", to: &standardError)
         }
