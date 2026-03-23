@@ -62,6 +62,9 @@ make
 
 # Test mode (exist after 5 seconds)
 ./miclog --test 5
+
+# Output to both console AND file (live viewing while saving)
+./miclog 2>&1 | tee -a ~/miclog.txt
 ```
 
 ### Example Output
